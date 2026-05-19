@@ -123,21 +123,25 @@ Las fases vacías (no ejecutadas) se omiten silenciosamente.
 ## Output Esperado
 
 ```
-📑 REPORT GENERATOR — <nombre del proyecto>
+🗂️  Agencia de Transición — Generador de Informes
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Secciones consolidadas : 12
-  ✅ 00_deteccion
-  ✅ 01_scout
-  ✅ 02_analyst
-  ✅ 03_architect
-  ✅ 04_auditor
-  ✅ 05_strategist
-  ✅ 12_knowledge-mgmt
+✅  REPORT GENERATOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Secciones consolidadas : <N>
+  ✅ <sección 1>
+  ✅ <sección 2>
   ...
 
 Archivos generados:
   📄 output/<proyecto>/<run>/00_summary/CONSOLIDATED_REPORT.md
   📝 output/<proyecto>/<run>/00_summary/INFORME_TRANSICION_<PROYECTO>.docx
+  📄 Descargas : <ruta descargas markdown solo si aplica>
+  📝 Descargas : <ruta descargas docx solo si aplica>
+  ⚠️ Descargas : <motivo de skip si no aplica>
+
+---JSON---
+{ ... contrato report_generator ... }
+---JSON---
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -145,13 +149,48 @@ Archivos generados:
 
 ```json
 {
-  "report_generator": {
-    "sections_included": 12,
-    "markdown_path": "output/<proyecto>/<run>/00_summary/CONSOLIDATED_REPORT.md",
-    "docx_path": "output/<proyecto>/<run>/00_summary/INFORME_TRANSICION_<PROYECTO>.docx",
-    "status": "SUCCESS"
-  }
+  "status": "SUCCESS|PARTIAL|FAILED",
+  "sections_included": 12,
+  "sections": [
+    "Scout — Descubrimiento de Repositorios",
+    "Analyst — Stack y Calidad"
+  ],
+  "skipped_files": [
+    "02_analyst/broken.md"
+  ],
+  "uncatalogued_phases": [
+    "99_nuevo-agente"
+  ],
+  "index_path": "output/<proyecto>/<run>/INDEX.md",
+  "markdown_path": "output/<proyecto>/<run>/00_summary/CONSOLIDATED_REPORT.md",
+  "docx_path": "output/<proyecto>/<run>/00_summary/INFORME_TRANSICION_<PROYECTO>.docx",
+  "downloads": {
+    "status": "ok|skipped",
+    "directory": "~/Downloads o override AGENCIA_DOWNLOADS_DIR",
+    "markdown": "ruta o null",
+    "docx": "ruta o null",
+    "reason": "motivo cuando status=skipped"
+  },
+  "index": "<Path>",
+  "markdown": "<Path>",
+  "docx": "<Path>",
+  "markdown_downloads": "<Path opcional>",
+  "docx_downloads": "<Path opcional>"
 }
+```
+
+Notas operativas:
+- `status` será `PARTIAL` cuando existan archivos con lectura degradada o no procesables.
+- Carpetas no catalogadas se incluyen al final del consolidado y en el índice, y se reportan en `uncatalogued_phases`.
+- La salida JSON se emite delimitada por `---JSON---` para parseo del Director.
+- `markdown_downloads` y `docx_downloads` son opcionales por compatibilidad retroactiva.
+
+## Comportamiento de Errores y Degradación
+
+- Un `.md` inválido en UTF-8 no aborta el proceso: se intenta leer con `errors=replace`, se agrega advertencia en el consolidado y se reporta en `skipped_files`.
+- Si `--docx-only` detecta consolidado potencialmente desactualizado, emite advertencia y continúa.
+- Si falta `python-docx`, el CLI imprime diagnóstico de instalación y termina con código 1.
+- Si la carpeta de descargas no existe, el pipeline continúa y `downloads.status` se reporta como `skipped`.
 ```
 
 ## Troubleshooting
