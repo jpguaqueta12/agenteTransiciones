@@ -16,49 +16,111 @@ from __future__ import annotations
 
 import re
 import sys
+import json
+import os
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 # ── Constantes ────────────────────────────────────────────────────────────────
 
+PHASES: dict[str, dict[str, Any]] = {
+    "00_deteccion": {
+        "label": "Detección de Plataforma",
+        "label_emoji": "🔎 Detección de Plataforma",
+        "order": 0,
+    },
+    "01_scout": {
+        "label": "Scout — Descubrimiento de Repositorios",
+        "label_emoji": "🕵️ Scout — Descubrimiento",
+        "order": 1,
+    },
+    "02_analyst": {
+        "label": "Analyst — Stack y Calidad",
+        "label_emoji": "📊 Analyst — Stack y Calidad",
+        "order": 2,
+    },
+    "03_architect": {
+        "label": "Architect — Arquitectura",
+        "label_emoji": "🏛️ Architect — Arquitectura",
+        "order": 3,
+    },
+    "04_auditor": {
+        "label": "Auditor — Seguridad",
+        "label_emoji": "🔐 Auditor — Seguridad",
+        "order": 4,
+    },
+    "05_strategist": {
+        "label": "Strategist — Roadmap de Transición",
+        "label_emoji": "🚀 Strategist — Roadmap",
+        "order": 5,
+    },
+    "06_access-readiness": {
+        "label": "Access Readiness — Accesos Día 1",
+        "label_emoji": "🔑 Access Readiness — Accesos Día 1",
+        "order": 6,
+    },
+    "07_app-inventory": {
+        "label": "App Inventory — Inventario de Aplicaciones",
+        "label_emoji": "📋 App Inventory — Inventario de Aplicaciones",
+        "order": 7,
+    },
+    "08_dependency-mapping": {
+        "label": "Dependency Mapping — Dependencias",
+        "label_emoji": "🕸️ Dependency Mapping — Dependencias",
+        "order": 8,
+    },
+    "09_api-integration": {
+        "label": "API Integration — Catálogo de APIs",
+        "label_emoji": "🔌 API Integration — Catálogo de APIs",
+        "order": 9,
+    },
+    "10_business-capability": {
+        "label": "Business Capability — Capacidades de Negocio",
+        "label_emoji": "💼 Business Capability — Capacidades de Negocio",
+        "order": 10,
+    },
+    "11_functional-flow": {
+        "label": "Functional Flow — Flujos de Proceso",
+        "label_emoji": "🔄 Functional Flow — Flujos de Proceso",
+        "order": 11,
+    },
+    "12_knowledge-mgmt": {
+        "label": "Knowledge Management — Base de Conocimiento",
+        "label_emoji": "🧠 Knowledge Mgmt — Base de Conocimiento",
+        "order": 12,
+    },
+    "13_kt-capture": {
+        "label": "KT Capture — Sesiones de Traspaso",
+        "label_emoji": "🎙️ KT Capture — Sesiones de Traspaso",
+        "order": 13,
+    },
+    "14_exit-criteria": {
+        "label": "Exit Criteria — Criterios de Salida",
+        "label_emoji": "✅ Exit Criteria — Criterios de Salida",
+        "order": 14,
+    },
+    "15_command-control": {
+        "label": "Command & Control — RAID y Decisiones Ejecutivas",
+        "label_emoji": "🎯 Command & Control — RAID y Decisiones",
+        "order": 15,
+    },
+    "00_summary": {
+        "label": "Resumen Completo",
+        "label_emoji": "📋 Resumen Completo",
+        "order": 99,
+        "is_summary": True,
+    },
+}
+
 PHASE_ORDER = [
-    "00_deteccion",
-    "01_scout",
-    "02_analyst",
-    "03_architect",
-    "04_auditor",
-    "05_strategist",
-    "06_access-readiness",
-    "07_app-inventory",
-    "08_dependency-mapping",
-    "09_api-integration",
-    "10_business-capability",
-    "11_functional-flow",
-    "12_knowledge-mgmt",
-    "13_kt-capture",
-    "14_exit-criteria",
-    "15_command-control",
+    folder
+    for folder, conf in sorted(PHASES.items(), key=lambda item: item[1]["order"])
+    if not conf.get("is_summary")
 ]
 
-PHASE_LABELS = {
-    "00_deteccion":           "Detección de Plataforma",
-    "01_scout":               "Scout — Descubrimiento de Repositorios",
-    "02_analyst":             "Analyst — Stack y Calidad",
-    "03_architect":           "Architect — Arquitectura",
-    "04_auditor":             "Auditor — Seguridad",
-    "05_strategist":          "Strategist — Roadmap de Transición",
-    "06_access-readiness":    "Access Readiness — Accesos Día 1",
-    "07_app-inventory":       "App Inventory — Inventario de Aplicaciones",
-    "08_dependency-mapping":  "Dependency Mapping — Dependencias",
-    "09_api-integration":     "API Integration — Catálogo de APIs",
-    "10_business-capability": "Business Capability — Capacidades de Negocio",
-    "11_functional-flow":     "Functional Flow — Flujos de Proceso",
-    "12_knowledge-mgmt":      "Knowledge Management — Base de Conocimiento",
-    "13_kt-capture":          "KT Capture — Sesiones de Traspaso",
-    "14_exit-criteria":       "Exit Criteria — Criterios de Salida",
-    "15_command-control":     "Command & Control — RAID y Decisiones Ejecutivas",
-}
+PHASE_LABELS = {folder: conf["label"] for folder, conf in PHASES.items()}
+PHASE_LABELS_EMOJI = {folder: conf["label_emoji"] for folder, conf in PHASES.items()}
 
 SKIP_FILES = {"INDEX.md", "FULL_REPORT.md", "CONSOLIDATED_REPORT.md"}
 
@@ -103,9 +165,26 @@ def find_latest_run(axetrules: Optional[Path] = None) -> Path:
     return candidates[-1]
 
 
+def _resolve_phase_directories(run_dir: Path) -> tuple[list[Path], list[str]]:
+    """
+    Resuelve las carpetas de fase en orden único.
+
+    Política para carpetas no catalogadas: se incluyen al final para evitar
+    pérdida silenciosa de contenido y se reportan como uncatalogued_phases.
+    """
+    all_folders = sorted(d for d in run_dir.iterdir() if d.is_dir())
+    known = [run_dir / phase for phase in PHASE_ORDER if (run_dir / phase).exists()]
+    remaining = [d for d in all_folders if d not in known and d.name != "00_summary"]
+    uncatalogued = [d.name for d in remaining]
+    return known + remaining, uncatalogued
+
+
 # ── Consolidación markdown ────────────────────────────────────────────────────
 
-def consolidate(run_dir: Path) -> str:
+def consolidate(
+    run_dir: Path,
+    metadata: Optional[dict[str, Any]] = None,
+) -> tuple[str, list[str]]:
     """
     Lee todos los archivos markdown del run en orden de fase
     y los une en un solo documento markdown estructurado.
@@ -127,12 +206,13 @@ def consolidate(run_dir: Path) -> str:
         "",
     ]
 
-    sections_added = 0
+    sections: list[str] = []
+    skipped_files: list[str] = []
 
-    for phase_folder in PHASE_ORDER:
-        phase_dir = run_dir / phase_folder
-        if not phase_dir.exists():
-            continue
+    phase_dirs, uncatalogued = _resolve_phase_directories(run_dir)
+
+    for phase_dir in phase_dirs:
+        phase_folder = phase_dir.name
 
         md_files = sorted(
             p for p in phase_dir.rglob("*.md")
@@ -141,12 +221,39 @@ def consolidate(run_dir: Path) -> str:
         if not md_files:
             continue
 
-        label = PHASE_LABELS.get(phase_folder, phase_folder)
+        if phase_folder in PHASES:
+            label = PHASE_LABELS[phase_folder]
+        else:
+            label = phase_folder.replace("-", " ").replace("_", " ").title()
+
         lines += ["", f"# {label}", ""]
-        sections_added += 1
+        sections.append(label)
 
         for md_file in md_files:
-            raw = md_file.read_text(encoding="utf-8").strip()
+            rel_path = str(md_file.relative_to(run_dir))
+            raw = ""
+            read_issue: Optional[str] = None
+
+            try:
+                raw = md_file.read_text(encoding="utf-8")
+            except UnicodeDecodeError as exc:
+                read_issue = f"UnicodeDecodeError: {exc.reason}"
+                skipped_files.append(rel_path)
+                try:
+                    raw = md_file.read_text(encoding="utf-8", errors="replace")
+                except OSError as inner_exc:
+                    read_issue = f"OSError: {inner_exc}"
+                    raw = ""
+            except OSError as exc:
+                read_issue = f"OSError: {exc}"
+                skipped_files.append(rel_path)
+
+            raw = raw.strip()
+
+            if read_issue:
+                lines.append(f"> ⚠️ Archivo no procesable: {rel_path} ({read_issue})")
+                lines.append("")
+
             if not raw:
                 continue
 
@@ -159,25 +266,30 @@ def consolidate(run_dir: Path) -> str:
                 while start < len(file_lines) and file_lines[start].strip() in ("", "---"):
                     start += 1
 
-            # Degradar headings internos: H2 → H3, H3 → H4
+            # Degradar headings internos: H2..H6 -> min(n+1, 4)
             adjusted: list[str] = []
             for ln in file_lines[start:]:
-                if ln.startswith("### "):
-                    adjusted.append("#### " + ln[4:])
-                elif ln.startswith("## "):
-                    adjusted.append("### " + ln[3:])
-                else:
-                    adjusted.append(ln)
+                heading_match = re.match(r"^(#{2,6})\s+(.*)$", ln)
+                if heading_match:
+                    src_level = len(heading_match.group(1))
+                    target_level = min(src_level + 1, 4)
+                    adjusted.append("#" * target_level + " " + heading_match.group(2))
+                    continue
+                adjusted.append(ln)
 
             content = "\n".join(adjusted).strip()
             if content:
                 lines.append(content)
                 lines.append("")
 
-    if sections_added == 0:
+    if not sections:
         lines.append("> No se encontraron outputs en este run. Ejecuta el pipeline primero.\n")
 
-    return "\n".join(lines)
+    if metadata is not None:
+        metadata["skipped_files"] = sorted(set(skipped_files))
+        metadata["uncatalogued_phases"] = uncatalogued
+
+    return "\n".join(lines), sections
 
 
 # ── Formateo inline ───────────────────────────────────────────────────────────
@@ -210,6 +322,11 @@ def _strip_heading(text: str) -> str:
 def _apply_inline(para, text: str) -> None:
     """Aplica formato inline a un párrafo Word."""
     from docx.shared import Pt
+
+    # Defensa en profundidad: evita costo regex elevado en líneas extremas.
+    if len(text) > 5000:
+        para.add_run(text)
+        return
 
     last = 0
     for m in _INLINE_RE.finditer(text):
@@ -266,10 +383,15 @@ def _add_code_block(doc, code: str) -> None:
 
 
 def _add_table(doc, rows: list[str]) -> None:
-    """Convierte filas markdown `| col | col |` en tabla Word con cabecera."""
+    """Convierte filas markdown en tabla Word.
+
+    Solo marca cabecera cuando existe fila separadora estilo markdown.
+    """
     from docx.shared import Pt
     from docx.oxml import OxmlElement
     from docx.oxml.ns import qn
+
+    has_separator = any(_TABLE_SEP_RE.match(row.strip()) for row in rows[:2])
 
     parsed: list[list[str]] = []
     for row in rows:
@@ -296,10 +418,10 @@ def _add_table(doc, rows: list[str]) -> None:
             _apply_inline(para, cell_text)
             for run in para.runs:
                 run.font.size = Pt(10)
-                if i == 0:
+                if has_separator and i == 0:
                     run.bold = True
 
-            if i == 0:
+            if has_separator and i == 0:
                 tc = cell._tc
                 tcPr = tc.get_or_add_tcPr()
                 shd = OxmlElement("w:shd")
@@ -328,6 +450,13 @@ def _add_hr(doc) -> None:
     pBdr.append(bottom)
     pPr.append(pBdr)
     p.paragraph_format.space_after = Pt(6)
+
+
+def _is_table_block(rows: list[str]) -> bool:
+    """Valida que el bloque sea tabla markdown (requiere fila separadora)."""
+    if len(rows) < 2:
+        return False
+    return any(_TABLE_SEP_RE.match(row.strip()) for row in rows[:2])
 
 
 # ── Conversión a Word ─────────────────────────────────────────────────────────
@@ -462,7 +591,13 @@ def md_to_docx(md_content: str, output_path: Path, project_name: str) -> None:
             while i < len(lines) and lines[i].startswith("|"):
                 tbl_lines.append(lines[i])
                 i += 1
-            _add_table(doc, tbl_lines)
+
+            if _is_table_block(tbl_lines):
+                _add_table(doc, tbl_lines)
+            else:
+                for row in tbl_lines:
+                    p = doc.add_paragraph()
+                    _apply_inline(p, row)
             continue
 
         # ── Encabezados ───────────────────────────────────────────────────────
@@ -541,20 +676,61 @@ def md_to_docx(md_content: str, output_path: Path, project_name: str) -> None:
 
 # ── Orquestador principal ─────────────────────────────────────────────────────
 
-def _copy_to_downloads(src: Path, project_name: str) -> Optional[Path]:
-    """Copia un archivo a ~/Downloads con nombre legible. Retorna la ruta destino."""
+def _copy_to_downloads(src: Path, project_name: str) -> dict[str, Any]:
+    """Copia un archivo a Downloads y retorna estado detallado de la operación."""
     import shutil
 
-    downloads = Path.home() / "Downloads"
+    override_dir = (
+        Path(os.environ["AGENCIA_DOWNLOADS_DIR"])
+        if "AGENCIA_DOWNLOADS_DIR" in os.environ
+        else None
+    )
+    downloads = override_dir or (Path.home() / "Downloads")
     if not downloads.exists():
-        return None
+        return {
+            "status": "skipped",
+            "path": None,
+            "reason": f"{downloads} no existe",
+            "directory": str(downloads),
+        }
 
     ts = datetime.now().strftime("%Y%m%d_%H%M")
     safe_project = project_name.upper().replace(" ", "_")
     dest = downloads / f"INFORME_{safe_project}_{ts}{src.suffix}"
 
-    shutil.copy2(src, dest)
-    return dest
+    try:
+        shutil.copy2(src, dest)
+    except OSError as exc:
+        return {
+            "status": "skipped",
+            "path": None,
+            "reason": f"Error copiando a descargas: {exc}",
+            "directory": str(downloads),
+        }
+
+    return {
+        "status": "ok",
+        "path": str(dest),
+        "reason": None,
+        "directory": str(downloads),
+    }
+
+
+def _find_newer_sources_than(run_dir: Path, reference_file: Path) -> list[Path]:
+    """Retorna fuentes markdown más nuevas que un consolidado existente."""
+    if not reference_file.exists():
+        return []
+
+    ref_mtime = reference_file.stat().st_mtime
+    phase_dirs, _ = _resolve_phase_directories(run_dir)
+    newer: list[Path] = []
+    for phase_dir in phase_dirs:
+        for md_file in phase_dir.rglob("*.md"):
+            if md_file.name in SKIP_FILES:
+                continue
+            if md_file.stat().st_mtime > ref_mtime:
+                newer.append(md_file)
+    return sorted(newer)
 
 
 def regenerate_index(run_dir: Path) -> Path:
@@ -569,28 +745,6 @@ def regenerate_index(run_dir: Path) -> Path:
     axetrules = run_dir.parent.parent.parent  # output/<proj>/<run> → .axetrules/
     ts = _dt.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    phase_labels = {
-        "00_deteccion":           "🔎 Detección de Plataforma",
-        "01_scout":               "🕵️ Scout — Descubrimiento",
-        "02_analyst":             "📊 Analyst — Stack & Calidad",
-        "03_architect":           "🏛️ Architect — Arquitectura",
-        "04_auditor":             "🔐 Auditor — Seguridad",
-        "05_strategist":          "🚀 Strategist — Roadmap",
-        "06_access-readiness":    "🔑 Access Readiness — Accesos Día 1",
-        "07_app-inventory":       "📋 App Inventory — Inventario de Aplicaciones",
-        "08_dependency-mapping":  "🕸️ Dependency Mapping — Dependencias",
-        "09_api-integration":     "🔌 API Integration — Catálogo de APIs",
-        "10_business-capability": "💼 Business Capability — Capacidades de Negocio",
-        "11_functional-flow":     "🔄 Functional Flow — Flujos de Proceso",
-        "12_knowledge-mgmt":      "🧠 Knowledge Mgmt — Base de Conocimiento",
-        "13_kt-capture":          "🎙️ KT Capture — Sesiones de Traspaso",
-        "14_exit-criteria":       "✅ Exit Criteria — Criterios de Salida",
-        "15_command-control":     "🎯 Command & Control — RAID & Decisiones",
-        "00_summary":             "📋 Resumen Completo",
-    }
-
-    skip_files = {"INDEX.md", "FULL_REPORT.md", "CONSOLIDATED_REPORT.md"}
-
     lines = [
         f"# 📁 Output — {project_name}",
         f"\n**Run ID:** `{run_id}`  ",
@@ -598,21 +752,20 @@ def regenerate_index(run_dir: Path) -> Path:
         "---\n",
     ]
 
-    all_folders = sorted(
-        d for d in run_dir.iterdir() if d.is_dir()
-    )
-    # Ordenar según PHASE_ORDER primero, luego el resto alfabéticamente
-    ordered = [run_dir / p for p in PHASE_ORDER if (run_dir / p).exists()]
-    remaining = [d for d in all_folders if d not in ordered]
-    for phase_dir in ordered + remaining:
+    ordered_dirs, _ = _resolve_phase_directories(run_dir)
+    for phase_dir in ordered_dirs:
         if phase_dir.name == "00_summary":
             continue  # resumen al final
         md_files = sorted(
-            p for p in phase_dir.rglob("*.md") if p.name not in skip_files
+            p for p in phase_dir.rglob("*.md") if p.name not in SKIP_FILES
         )
         if not md_files:
             continue
-        label = phase_labels.get(phase_dir.name, phase_dir.name)
+        if phase_dir.name in PHASE_LABELS_EMOJI:
+            label = PHASE_LABELS_EMOJI[phase_dir.name]
+        else:
+            derived = phase_dir.name.replace("-", " ").replace("_", " ").title()
+            label = f"📁 {derived}"
         lines.append(f"## {label}\n")
         for filepath in md_files:
             rel = filepath.relative_to(axetrules)
@@ -623,10 +776,10 @@ def regenerate_index(run_dir: Path) -> Path:
     summary_dir = run_dir / "00_summary"
     if summary_dir.exists():
         summary_files = sorted(
-            p for p in summary_dir.rglob("*.md") if p.name not in skip_files
+            p for p in summary_dir.rglob("*.md") if p.name not in SKIP_FILES
         )
         if summary_files:
-            lines.append(f"## {phase_labels['00_summary']}\n")
+            lines.append(f"## {PHASE_LABELS_EMOJI['00_summary']}\n")
             for filepath in summary_files:
                 rel = filepath.relative_to(axetrules)
                 lines.append(f"- [{filepath.name}]({rel})")
@@ -643,7 +796,7 @@ def generate(
     run_dir: Optional[Path] = None,
     md_only: bool = False,
     docx_only: bool = False,
-) -> dict[str, Path]:
+) -> dict[str, Any]:
     """
     Consolida y exporta el informe.
     Retorna un dict con las claves 'markdown' y/o 'docx' apuntando a los archivos,
@@ -659,46 +812,119 @@ def generate(
     md_path   = summary_dir / "CONSOLIDATED_REPORT.md"
     docx_path = summary_dir / f"INFORME_TRANSICION_{project_name.upper()}.docx"
 
-    result: dict[str, Path] = {}
+    result: dict[str, Any] = {
+        "status": "SUCCESS",
+        "sections_included": 0,
+        "sections": [],
+        "skipped_files": [],
+        "uncatalogued_phases": [],
+        "downloads": {
+            "status": "skipped",
+            "reason": "No se intentaron copias todavía",
+            "directory": str(Path.home() / "Downloads"),
+            "markdown": None,
+            "docx": None,
+        },
+    }
 
     # Regenerar INDEX.md con todos los outputs (CORE + extendidos)
     print(f"  🗂️   Actualizando INDEX.md…")
     index_path = regenerate_index(run_dir)
     result["index"] = index_path
+    result["index_path"] = str(index_path)
     print(f"      → {index_path}")
 
     if not docx_only:
         print(f"  📄  Consolidando markdown…")
-        md_content = consolidate(run_dir)
+        consolidation_meta: dict[str, Any] = {}
+        md_content, sections = consolidate(run_dir, metadata=consolidation_meta)
         md_path.write_text(md_content, encoding="utf-8")
         result["markdown"] = md_path
+        result["markdown_path"] = str(md_path)
+        result["sections"] = sections
+        result["sections_included"] = len(sections)
+        result["skipped_files"] = consolidation_meta.get("skipped_files", [])
+        result["uncatalogued_phases"] = consolidation_meta.get("uncatalogued_phases", [])
         print(f"      → {md_path}")
-        dl = _copy_to_downloads(md_path, project_name)
-        if dl:
-            result["markdown_downloads"] = dl
+
+        dl_md = _copy_to_downloads(md_path, project_name)
+        if dl_md["status"] == "ok":
+            result["markdown_downloads"] = Path(dl_md["path"])
+            result["downloads"]["markdown"] = dl_md["path"]
+            result["downloads"]["directory"] = dl_md["directory"]
+        else:
+            result["downloads"]["reason"] = dl_md["reason"]
+            print(f"  ⚠️  No se copió markdown a descargas: {dl_md['reason']}", file=sys.stderr)
     else:
         if not md_path.exists():
             raise FileNotFoundError(
                 f"No se encontró {md_path}. Ejecuta sin --docx-only primero."
             )
+
+        newer_sources = _find_newer_sources_than(run_dir, md_path)
+        if newer_sources:
+            print(
+                (
+                    "  ⚠️  CONSOLIDATED_REPORT.md es más antiguo que "
+                    f"{len(newer_sources)} archivo(s) fuente. "
+                    "Considera regenerar sin --docx-only."
+                ),
+                file=sys.stderr,
+            )
+
         md_content = md_path.read_text(encoding="utf-8")
+        result["markdown_path"] = str(md_path)
 
     if not md_only:
         print(f"  📝  Generando Word…")
         md_to_docx(md_content, docx_path, project_name)
         result["docx"] = docx_path
+        result["docx_path"] = str(docx_path)
         print(f"      → {docx_path}")
-        dl = _copy_to_downloads(docx_path, project_name)
-        if dl:
-            result["docx_downloads"] = dl
+
+        dl_docx = _copy_to_downloads(docx_path, project_name)
+        if dl_docx["status"] == "ok":
+            result["docx_downloads"] = Path(dl_docx["path"])
+            result["downloads"]["docx"] = dl_docx["path"]
+            result["downloads"]["directory"] = dl_docx["directory"]
+        else:
+            result["downloads"]["reason"] = dl_docx["reason"]
+            print(f"  ⚠️  No se copió Word a descargas: {dl_docx['reason']}", file=sys.stderr)
+
+    if result.get("skipped_files"):
+        result["status"] = "PARTIAL"
+
+    downloads = result["downloads"]
+    if downloads.get("markdown") or downloads.get("docx"):
+        downloads["status"] = "ok"
+        downloads["reason"] = None
+    else:
+        downloads["status"] = "skipped"
 
     return result
+
+
+def _result_to_json(result: dict[str, Any]) -> str:
+    """Serializa el contrato de salida para consumo del Director."""
+
+    def _default(obj: Any) -> Any:
+        if isinstance(obj, Path):
+            return str(obj)
+        raise TypeError(f"Tipo no serializable: {type(obj).__name__}")
+
+    return json.dumps(result, ensure_ascii=False, default=_default, indent=2)
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     import argparse
+
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
     parser = argparse.ArgumentParser(description="Genera informe consolidado Word")
     parser.add_argument(
@@ -727,19 +953,55 @@ if __name__ == "__main__":
             md_only=args.md_only,
             docx_only=args.docx_only,
         )
-        print("\n✅  Informe generado:")
+        print("\n✅  REPORT GENERATOR")
+        print("━" * 50)
+        print(f"Secciones consolidadas : {result.get('sections_included', 0)}")
+        for section in result.get("sections", []):
+            print(f"  ✅ {section}")
+
+        print("\nArchivos generados:")
         if "markdown" in result:
             print(f"    📄 Markdown  : {result['markdown']}")
-        if "markdown_downloads" in result:
-            print(f"    📄 Descargas : {result['markdown_downloads']}")
         if "docx" in result:
             print(f"    📝 Word      : {result['docx']}")
-        if "docx_downloads" in result:
-            print(f"    📝 Descargas : {result['docx_downloads']}")
+
+        downloads = result.get("downloads", {})
+        if downloads.get("status") == "ok":
+            if downloads.get("markdown"):
+                print(f"    📄 Descargas : {downloads['markdown']}")
+            if downloads.get("docx"):
+                print(f"    📝 Descargas : {downloads['docx']}")
+        else:
+            print(f"    ⚠️ Descargas : {downloads.get('reason')}")
+
+        print("━" * 50)
+        print("---JSON---")
+        print(_result_to_json(result))
+        print("---JSON---")
     except FileNotFoundError as e:
         print(f"\n✗  {e}", file=sys.stderr)
+        failed = {
+            "status": "FAILED",
+            "error": str(e),
+            "sections_included": 0,
+            "sections": [],
+        }
+        print("---JSON---")
+        print(_result_to_json(failed))
+        print("---JSON---")
         sys.exit(1)
-    except ImportError:
+    except ImportError as e:
+        print(f"\n✗  Dependencia faltante: {e}", file=sys.stderr)
+        print("   Ejecuta: pip install python-docx --break-system-packages", file=sys.stderr)
+        failed = {
+            "status": "FAILED",
+            "error": f"ImportError: {e}",
+            "sections_included": 0,
+            "sections": [],
+        }
+        print("---JSON---")
+        print(_result_to_json(failed))
+        print("---JSON---")
         sys.exit(1)
     except Exception as e:
         print(f"\n✗  Error inesperado: {e}", file=sys.stderr)
