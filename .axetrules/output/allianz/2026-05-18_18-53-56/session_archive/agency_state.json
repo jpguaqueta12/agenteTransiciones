@@ -1,0 +1,104 @@
+{
+    "session_id": "2026-05-18_18-53-56",
+    "session_started": "2026-05-18T18:53:56.893161",
+    "active_project": {
+        "index": "1",
+        "id": "jpguaqueta12/allianz",
+        "name": "allianz",
+        "url": "https://github.com/jpguaqueta12/allianz.git",
+        "branch": "main"
+    },
+    "active_projects": [
+        {
+            "index": "1",
+            "id": "jpguaqueta12/allianz",
+            "name": "allianz",
+            "url": "https://github.com/jpguaqueta12/allianz.git",
+            "branch": "main"
+        }
+    ],
+    "selected_branch": "main",
+    "phases_completed": [
+        "diagnose",
+        "architect",
+        "audit",
+        "strategy"
+    ],
+    "results": {
+        "stack": {
+            "primary_language": "Python",
+            "frameworks": [
+                "FastAPI",
+                "React",
+                "Vite",
+                "LangChain",
+                "LangGraph"
+            ],
+            "databases": [
+                "PostgreSQL",
+                "Redis",
+                "SQL Server"
+            ],
+            "infrastructure": [
+                "Docker",
+                "GitHub Actions"
+            ],
+            "project_type": "Fullstack",
+            "test_framework": "Desconocido",
+            "has_tests": true,
+            "test_ratio": 0.04
+        },
+        "quality": {
+            "overall_score": 42,
+            "has_readme": false,
+            "readme_score": 0,
+            "has_tests": true,
+            "test_ratio": 0.04,
+            "has_linting": false,
+            "has_ci_cd": true,
+            "has_dockerfile": true,
+            "has_env_example": false,
+            "has_gitignore": true,
+            "has_license": false,
+            "has_changelog": false
+        },
+        "architecture": {
+            "deployment": "Microservicio",
+            "primary_pattern": "Hexagonal",
+            "pattern_score": 16,
+            "confidence": "BAJA",
+            "violations": 0,
+            "mermaid": "```mermaid\ngraph LR\n  subgraph EXT_L[\"Driving Adapters\"]\n    REST[REST Controller]\n    CLI[CLI / Jobs]\n  end\n  subgraph CORE[\"Core (Ports)\"]\n    PIN[Input Ports]\n    APP[Application / Domain]\n    POUT[Output Ports]\n  end\n  subgraph EXT_R[\"Driven Adapters\"]\n    DB[(Database)]\n    API[External API]\n  end\n  REST --> PIN\n  CLI --> PIN\n  PIN --> APP\n  APP --> POUT\n  POUT -.->|implements| DB\n  POUT -.->|implements| API\n  style CORE fill:#4CAF50,color:#fff\n```"
+        },
+        "audit": {
+            "secrets_count": 3,
+            "secrets": [
+                {
+                    "type": "generic_password",
+                    "file": "back-planificacion/app/db/connection.py",
+                    "line": 35
+                },
+                {
+                    "type": "generic_password",
+                    "file": "back-planificacion/scripts/seed_azure_sql.py",
+                    "line": 46
+                },
+                {
+                    "type": "generic_password",
+                    "file": "back-planificacion/scripts/test_sql_connection.py",
+                    "line": 40
+                }
+            ],
+            "verdict": "RIESGO_DETECTADO"
+        }
+    },
+    "detected_platform": {
+        "platform": "github",
+        "base_url": "https://github.com",
+        "confidence": "ALTA",
+        "detected_at": "2026-05-18T18:53:56.893670",
+        "original_url": "https://github.com/jpguaqueta12/allianz.git"
+    },
+    "last_scout_report": null,
+    "last_run_id": "2026-05-18_18-53-56"
+}
