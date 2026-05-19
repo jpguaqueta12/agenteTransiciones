@@ -290,15 +290,18 @@ Informa: `✅ Command & Control completado → 15_command-control/`
 python .axetrules/core/drivers/generate_report.py
 ```
 
-Consolida todos los markdown del run → Word profesional → copia en `~/Downloads/`.
+Consolida todos los markdown del run → Word profesional.
+La copia en descargas es condicional: se informa solo si `downloads.status == ok`.
 
 Informa al usuario:
 ```
 ✅ Pipeline completo — 16 outputs generados
 📄 Markdown  : <RUN_DIR>/00_summary/CONSOLIDATED_REPORT.md
 📝 Word      : <RUN_DIR>/00_summary/INFORME_TRANSICION_<PROYECTO>.docx
-📥 Descargas : ~/Downloads/INFORME_<PROYECTO>_<FECHA>.docx
+📥 Descargas : <ruta real reportada por contrato, solo si aplica>
 ```
+
+Si `downloads.status == skipped`, informar la razón y mantener como rutas finales las de `00_summary/`.
 
 ---
 

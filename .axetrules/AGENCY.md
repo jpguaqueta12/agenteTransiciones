@@ -246,7 +246,8 @@ python .axetrules/core/drivers/generate_report.py
 
 Consolida todos los `.md` del run → `00_summary/CONSOLIDATED_REPORT.md`
 Exporta a Word → `00_summary/INFORME_TRANSICION_<PROYECTO>.docx`
-Copia automáticamente ambos archivos a `~/Downloads/`
+Copia a `~/Downloads/` solo si la carpeta existe (o si se definió `AGENCIA_DOWNLOADS_DIR`).
+Si la copia no se realiza, el pipeline continúa y el resultado se reporta en `downloads.status = skipped`.
 
 ---
 
