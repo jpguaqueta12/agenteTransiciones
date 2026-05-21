@@ -213,6 +213,25 @@ def test_invalid_utf8_file_marks_partial_without_abort(report_module, run_dir: P
     assert "Archivo no procesable" in consolidated
 
 
+def test_utf16le_file_is_consolidated_without_partial(report_module, run_dir: Path, tmp_path: Path, monkeypatch):
+    downloads = tmp_path / "downloads"
+    downloads.mkdir()
+    monkeypatch.setenv("AGENCIA_DOWNLOADS_DIR", str(downloads))
+
+    utf16_file = run_dir / "16_database-analysis" / "database_analysis_report.md"
+    utf16_file.parent.mkdir(parents=True, exist_ok=True)
+    utf16_file.write_bytes("# Reporte UTF16\n\ncontenido correcto".encode("utf-16-le"))
+
+    result = report_module.generate(run_dir=run_dir)
+
+    assert result["status"] == "SUCCESS"
+    assert all("16_database-analysis" not in p for p in result["skipped_files"])
+
+    consolidated = Path(result["markdown_path"]).read_text(encoding="utf-8")
+    assert "contenido correcto" in consolidated
+    assert "Archivo no procesable: 16_database-analysis" not in consolidated
+
+
 def test_uncatalogued_phase_is_included_in_markdown_and_index(report_module, run_dir: Path, tmp_path: Path, monkeypatch):
     downloads = tmp_path / "downloads"
     downloads.mkdir()

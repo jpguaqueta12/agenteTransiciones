@@ -2,8 +2,10 @@
 name: agencia-transicion
 description: >
   Orquestador maestro de la Agencia de Transición de Software.
-  Ejecuta 16 pasos en secuencia: descubrimiento interactivo, pipeline técnico,
-  10 agentes de análisis extendido y generación del informe Word final.
+  Ejecuta el pipeline base y, cuando las nuevas skills estén presentes, ejecuta
+  un bloque técnico avanzado adicional: base de datos, performance, observabilidad,
+  SOX, AppSec profundo, modularidad, DevOps y testing. El bloque avanzado no
+  modifica los scripts CORE ni reemplaza los agentes existentes.
 ---
 
 # Agencia de Transición — Director
@@ -197,6 +199,165 @@ Informa: `✅ Functional Flow completado → 11_functional-flow/functional_flow_
 
 ---
 
+## BLOQUE TÉCNICO AVANZADO — Skills 16 a 23
+
+Este bloque se ejecuta después de Functional Flow y antes de Knowledge Management para que Knowledge Management, Exit Criteria y Command & Control puedan incorporar sus hallazgos. Las carpetas mantienen numeración `16_*` a `23_*` para no alterar los outputs históricos `12_*` a `15_*`.
+
+Reglas del bloque:
+
+1. Cada skill es generativa: el Director lee su `SKILL.md`, lee los inputs definidos y escribe el markdown de salida.
+2. Si una skill falla por falta de evidencia, generar igualmente el reporte con sección `Limitaciones` y estado `PARTIAL`, no abortar el pipeline.
+3. No ejecutar conexiones a bases de datos productivas, despliegues, pipelines ni comandos destructivos.
+4. Todo hallazgo debe tener evidencia, severidad y confianza.
+5. Si el director no encuentra una carpeta de skill avanzada, la registra como `SKIPPED_NOT_INSTALLED` y continúa.
+
+### PASO 9A — 🗄️ Database Analysis
+
+Lee `.axetrules/agentes/database-analysis/SKILL.md`.
+
+Inputs a leer:
+- `<RUN_DIR>/02_analyst/stack_quality_report.md`
+- `<RUN_DIR>/03_architect/architecture_report.md`
+- `<RUN_DIR>/08_dependency-mapping/dependency_map_report.md`
+- `<RUN_DIR>/09_api-integration/api_integration_report.md`
+- Archivos del repo clonado en `<CLONE_DIR>/`: migraciones, DDL, SQL, ORM, configuración, IaC, Docker/K8s.
+
+Escribe el resultado en:
+**`<RUN_DIR>/16_database-analysis/database_analysis_report.md`**
+
+Informa: `✅ Database Analysis completado → 16_database-analysis/database_analysis_report.md`
+
+---
+
+### PASO 9B — ⚡ Performance Static
+
+Lee `.axetrules/agentes/performance-static/SKILL.md`.
+
+Inputs a leer:
+- `<RUN_DIR>/02_analyst/stack_quality_report.md`
+- `<RUN_DIR>/03_architect/architecture_report.md`
+- `<RUN_DIR>/09_api-integration/api_integration_report.md`
+- `<RUN_DIR>/16_database-analysis/database_analysis_report.md`
+- Archivos del repo clonado en `<CLONE_DIR>/`: controllers, services, repositories, jobs, consumers.
+
+Escribe el resultado en:
+**`<RUN_DIR>/17_performance-static/performance_static_report.md`**
+
+Informa: `✅ Performance Static completado → 17_performance-static/performance_static_report.md`
+
+---
+
+### PASO 9C — 📡 Observability Readiness
+
+Lee `.axetrules/agentes/observability-readiness/SKILL.md`.
+
+Inputs a leer:
+- `<RUN_DIR>/02_analyst/stack_quality_report.md`
+- `<RUN_DIR>/03_architect/architecture_report.md`
+- `<RUN_DIR>/08_dependency-mapping/dependency_map_report.md`
+- `<RUN_DIR>/09_api-integration/api_integration_report.md`
+- `<RUN_DIR>/22_devops-readiness/devops_readiness_report.md` si existe; si no existe, continuar sin él.
+- Archivos del repo clonado en `<CLONE_DIR>/`: configuración, logging, tracing, manifests, health checks.
+
+Escribe el resultado en:
+**`<RUN_DIR>/18_observability-readiness/observability_readiness_report.md`**
+
+Informa: `✅ Observability Readiness completado → 18_observability-readiness/observability_readiness_report.md`
+
+---
+
+### PASO 9D — 🧾 SOX Audit
+
+Lee `.axetrules/agentes/sox-audit/SKILL.md`.
+
+Inputs a leer:
+- `<RUN_DIR>/10_business-capability/business_capability_report.md` si existe; si no existe, continuar con evidencia de código.
+- `<RUN_DIR>/11_functional-flow/functional_flow_report.md`
+- `<RUN_DIR>/16_database-analysis/database_analysis_report.md`
+- `<RUN_DIR>/20_appsec-deep/appsec_deep_report.md` si existe; si no existe, continuar sin él.
+- Archivos del repo clonado en `<CLONE_DIR>/`: roles, permisos, workflows, entidades, servicios, tablas audit/history.
+
+Escribe el resultado en:
+**`<RUN_DIR>/19_sox-audit/sox_audit_report.md`**
+
+Informa: `✅ SOX Audit completado → 19_sox-audit/sox_audit_report.md`
+
+---
+
+### PASO 9E — 🛡️ AppSec Deep
+
+Lee `.axetrules/agentes/appsec-deep/SKILL.md`.
+
+Inputs a leer:
+- `<RUN_DIR>/04_auditor/security_report.md`
+- `<RUN_DIR>/09_api-integration/api_integration_report.md`
+- `<RUN_DIR>/16_database-analysis/database_analysis_report.md`
+- `<RUN_DIR>/18_observability-readiness/observability_readiness_report.md` si existe; si no existe, continuar sin él.
+- Archivos del repo clonado en `<CLONE_DIR>/`: controllers, routers, templates, services, config, auth middleware.
+
+Escribe el resultado en:
+**`<RUN_DIR>/20_appsec-deep/appsec_deep_report.md`**
+
+Informa: `✅ AppSec Deep completado → 20_appsec-deep/appsec_deep_report.md`
+
+---
+
+### PASO 9F — 🧩 Modularity Analysis
+
+Lee `.axetrules/agentes/modularity-analysis/SKILL.md`.
+
+Inputs a leer:
+- `<RUN_DIR>/02_analyst/stack_quality_report.md`
+- `<RUN_DIR>/03_architect/architecture_report.md`
+- `<RUN_DIR>/08_dependency-mapping/dependency_map_report.md`
+- `<RUN_DIR>/10_business-capability/business_capability_report.md` si existe; si no existe, continuar con nombres de paquetes y endpoints.
+- `<RUN_DIR>/11_functional-flow/functional_flow_report.md`
+- Archivos del repo clonado en `<CLONE_DIR>/`: imports, paquetes, módulos, proyectos, servicios, entidades.
+
+Escribe el resultado en:
+**`<RUN_DIR>/21_modularity-analysis/modularity_analysis_report.md`**
+
+Informa: `✅ Modularity Analysis completado → 21_modularity-analysis/modularity_analysis_report.md`
+
+---
+
+### PASO 9G — 🚀 DevOps Readiness
+
+Lee `.axetrules/agentes/devops-readiness/SKILL.md`.
+
+Inputs a leer:
+- `<RUN_DIR>/01_scout/projects_discovered.md`
+- `<RUN_DIR>/01_scout/branches_discovered.md`
+- `<RUN_DIR>/02_analyst/stack_quality_report.md`
+- `<RUN_DIR>/04_auditor/security_report.md`
+- `<RUN_DIR>/08_dependency-mapping/dependency_map_report.md`
+- Archivos del repo clonado en `<CLONE_DIR>/`: pipelines, Dockerfile, Helm, K8s, Terraform, scripts, Sonar config.
+
+Escribe el resultado en:
+**`<RUN_DIR>/22_devops-readiness/devops_readiness_report.md`**
+
+Informa: `✅ DevOps Readiness completado → 22_devops-readiness/devops_readiness_report.md`
+
+---
+
+### PASO 9H — 🧪 Testing Readiness
+
+Lee `.axetrules/agentes/testing-readiness/SKILL.md`.
+
+Inputs a leer:
+- `<RUN_DIR>/02_analyst/stack_quality_report.md`
+- `<RUN_DIR>/17_performance-static/performance_static_report.md`
+- `<RUN_DIR>/20_appsec-deep/appsec_deep_report.md`
+- `<RUN_DIR>/22_devops-readiness/devops_readiness_report.md`
+- Archivos del repo clonado en `<CLONE_DIR>/`: tests, fixtures, mocks, coverage, CI config.
+
+Escribe el resultado en:
+**`<RUN_DIR>/23_testing-readiness/testing_readiness_report.md`**
+
+Informa: `✅ Testing Readiness completado → 23_testing-readiness/testing_readiness_report.md`
+
+---
+
 ### PASO 10 — 🧠 Knowledge Management
 
 Lee `.axetrules/agentes/knowledge-mgmt/SKILL.md`.
@@ -205,6 +366,9 @@ Inputs a leer — todos los outputs disponibles en `<RUN_DIR>/`:
 - `01_scout/` · `02_analyst/` · `03_architect/` · `04_auditor/` · `05_strategist/`
 - `07_app-inventory/` · `08_dependency-mapping/` · `09_api-integration/`
 - `10_business-capability/` · `11_functional-flow/`
+- `16_database-analysis/` · `17_performance-static/` · `18_observability-readiness/`
+- `19_sox-audit/` · `20_appsec-deep/` · `21_modularity-analysis/`
+- `22_devops-readiness/` · `23_testing-readiness/`
 
 Aplica el protocolo del SKILL.md y genera la base de conocimiento completa.
 
@@ -250,9 +414,14 @@ Inputs a leer — todos los outputs disponibles en `<RUN_DIR>/`:
 - `01_scout/` · `02_analyst/` · `03_architect/` · `04_auditor/`
 - `06_access-readiness/` · `07_app-inventory/` · `08_dependency-mapping/`
 - `10_business-capability/` · `11_functional-flow/` · `12_knowledge-mgmt/` · `13_kt-capture/`
+- `16_database-analysis/` · `17_performance-static/` · `18_observability-readiness/`
+- `19_sox-audit/` · `20_appsec-deep/` · `21_modularity-analysis/`
+- `22_devops-readiness/` · `23_testing-readiness/`
 
 Aplica el protocolo del SKILL.md: evalúa cada gate (0→5), determina estado actual
 y lista los entregables pendientes bloqueantes.
+
+Los hallazgos críticos de `19_sox-audit`, `20_appsec-deep`, secretos/credenciales de `16_database-analysis`, ausencia grave de CI/CD de `22_devops-readiness` y ausencia total de tests de `23_testing-readiness` deben evaluarse como candidatos a bloqueante de salida.
 
 Escribe los resultados en:
 - **`<RUN_DIR>/14_exit-criteria/deliverables_matrix.md`**
@@ -269,10 +438,15 @@ Lee `.axetrules/agentes/command-control/SKILL.md`.
 Inputs a leer — todos los outputs disponibles en `<RUN_DIR>/`:
 - `02_analyst/` · `03_architect/` · `04_auditor/` · `05_strategist/`
 - `06_access-readiness/` · `08_dependency-mapping/` · `14_exit-criteria/`
+- `16_database-analysis/` · `17_performance-static/` · `18_observability-readiness/`
+- `19_sox-audit/` · `20_appsec-deep/` · `21_modularity-analysis/`
+- `22_devops-readiness/` · `23_testing-readiness/`
 - y todos los demás que existan
 
 Aplica el protocolo del SKILL.md: construye el registro RAID completo
 (Riesgos, Acciones, Issues, Dependencias), log de decisiones y dashboard ejecutivo.
+
+Todo hallazgo avanzado con severidad CRÍTICA o ALTA debe convertirse en un riesgo, issue o acción RAID con referencia al reporte fuente y ruta de evidencia.
 
 Escribe los resultados en:
 - **`<RUN_DIR>/15_command-control/raid_register.md`**

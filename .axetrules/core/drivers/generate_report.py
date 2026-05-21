@@ -18,6 +18,7 @@ import re
 import sys
 import json
 import os
+import codecs
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
@@ -105,6 +106,46 @@ PHASES: dict[str, dict[str, Any]] = {
         "label_emoji": "🎯 Command & Control — RAID y Decisiones",
         "order": 15,
     },
+    "16_database-analysis": {
+        "label": "Database Analysis — Datos y Persistencia",
+        "label_emoji": "🗄️ Database Analysis — Datos y Persistencia",
+        "order": 11.1,
+    },
+    "17_performance-static": {
+        "label": "Performance Static — Rendimiento Estático",
+        "label_emoji": "⚡ Performance Static — Rendimiento Estático",
+        "order": 11.2,
+    },
+    "18_observability-readiness": {
+        "label": "Observability Readiness — Observabilidad",
+        "label_emoji": "📡 Observability Readiness — Observabilidad",
+        "order": 11.3,
+    },
+    "19_sox-audit": {
+        "label": "SOX Audit — Controles y Auditoría",
+        "label_emoji": "🧾 SOX Audit — Controles y Auditoría",
+        "order": 11.4,
+    },
+    "20_appsec-deep": {
+        "label": "AppSec Deep — Seguridad Aplicativa",
+        "label_emoji": "🛡️ AppSec Deep — Seguridad Aplicativa",
+        "order": 11.5,
+    },
+    "21_modularity-analysis": {
+        "label": "Modularity Analysis — Modularidad y Acoplamiento",
+        "label_emoji": "🧩 Modularity Analysis — Modularidad y Acoplamiento",
+        "order": 11.6,
+    },
+    "22_devops-readiness": {
+        "label": "DevOps Readiness — CI/CD y Entrega",
+        "label_emoji": "🚀 DevOps Readiness — CI/CD y Entrega",
+        "order": 11.7,
+    },
+    "23_testing-readiness": {
+        "label": "Testing Readiness — Pruebas y Cobertura Evidenciada",
+        "label_emoji": "🧪 Testing Readiness — Pruebas y Cobertura Evidenciada",
+        "order": 11.8,
+    },
     "00_summary": {
         "label": "Resumen Completo",
         "label_emoji": "📋 Resumen Completo",
@@ -179,6 +220,45 @@ def _resolve_phase_directories(run_dir: Path) -> tuple[list[Path], list[str]]:
     return known + remaining, uncatalogued
 
 
+def _decode_markdown_bytes(data: bytes) -> tuple[str, Optional[str], bool]:
+    """
+    Intenta decodificar markdown en codificaciones comunes.
+
+    Retorna (texto, warning, degraded):
+    - warning: mensaje legible cuando hubo degradacion.
+    - degraded: True si se usaron reemplazos y debe reportarse como parcial.
+    """
+    if data.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
+        try:
+            return data.decode("utf-16"), None, False
+        except UnicodeDecodeError:
+            pass
+
+    if len(data) >= 4 and len(data) % 2 == 0:
+        odd_nulls = sum(1 for i in range(1, len(data), 2) if data[i] == 0)
+        even_nulls = sum(1 for i in range(0, len(data), 2) if data[i] == 0)
+        half = len(data) // 2
+
+        if odd_nulls >= max(1, half // 3):
+            try:
+                return data.decode("utf-16-le"), None, False
+            except UnicodeDecodeError:
+                pass
+
+        if even_nulls >= max(1, half // 3):
+            try:
+                return data.decode("utf-16-be"), None, False
+            except UnicodeDecodeError:
+                pass
+
+    try:
+        return data.decode("utf-8"), None, False
+    except UnicodeDecodeError:
+        pass
+
+    return data.decode("utf-8", errors="replace"), "decodificacion degradada (utf-8 con reemplazo)", True
+
+
 # ── Consolidación markdown ────────────────────────────────────────────────────
 
 def consolidate(
@@ -233,19 +313,19 @@ def consolidate(
             rel_path = str(md_file.relative_to(run_dir))
             raw = ""
             read_issue: Optional[str] = None
+            degraded = False
 
             try:
-                raw = md_file.read_text(encoding="utf-8")
-            except UnicodeDecodeError as exc:
-                read_issue = f"UnicodeDecodeError: {exc.reason}"
-                skipped_files.append(rel_path)
-                try:
-                    raw = md_file.read_text(encoding="utf-8", errors="replace")
-                except OSError as inner_exc:
-                    read_issue = f"OSError: {inner_exc}"
-                    raw = ""
+                payload = md_file.read_bytes()
+                raw, decode_warning, degraded = _decode_markdown_bytes(payload)
+                if decode_warning:
+                    read_issue = decode_warning
             except OSError as exc:
                 read_issue = f"OSError: {exc}"
+                skipped_files.append(rel_path)
+                raw = ""
+
+            if degraded:
                 skipped_files.append(rel_path)
 
             raw = raw.strip()
@@ -838,7 +918,7 @@ def generate(
         print(f"  📄  Consolidando markdown…")
         consolidation_meta: dict[str, Any] = {}
         md_content, sections = consolidate(run_dir, metadata=consolidation_meta)
-        md_path.write_text(md_content, encoding="utf-8")
+        md_path.write_text(md_content, encoding="utf-8", errors="replace")
         result["markdown"] = md_path
         result["markdown_path"] = str(md_path)
         result["sections"] = sections

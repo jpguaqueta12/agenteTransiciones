@@ -1,39 +1,38 @@
 # 🚀 Strategist — Roadmap de Transición
 
-**Proyecto:** allianz  
+**Proyecto:** agente-sanitizador-sonar  
 **Fase:** Strategist  
-**Fecha:** 2026-05-18 19:09:07  
-**URL:** https://github.com/jpguaqueta12/allianz.git  
+**Fecha:** 2026-05-21 08:05:22  
+**URL:** https://umane.emeal.nttdata.com/git/COITDEVSOCOEAPPSIA/agente-sanitizador-sonar.git  
 
 ---
 
-## Estrategia Seleccionada: **Rearchitect**
+## Estrategia Seleccionada: **Refactor**
 
 | Métrica | Valor |
 |---|---|
-| Índice de Deuda Técnica | 53/100 |
-| Score de Calidad | 42/100 |
+| Índice de Deuda Técnica | 27/100 |
+| Score de Calidad | 32/100 |
 | Violaciones Arquitectura | 0 |
-| Secretos Expuestos | 3 |
+| Secretos Expuestos | 0 |
 | Lenguaje Principal | Python |
-| Patrón Actual | Hexagonal |
+| Patrón Actual | Desconocido |
 
 ## Fase 1: Estabilización (Semanas 1-2) — Quick Wins
 
-- [ ] Rotar 3 secreto(s) expuesto(s) en el código
-- [ ] Crear `.env.example` con variables documentadas
 - [ ] Agregar archivo `LICENSE`
 - [ ] Actualizar dependencias con CVEs críticos
 
 ## Fase 2: Refactorización (Semanas 3-6)
 
-- [ ] Aumentar cobertura de tests (actual: 4% → meta: 60%)
+- [ ] Implementar suite de tests automatizados
 - [ ] Configurar herramienta de linting y formateo
-- [ ] Mejorar documentación (README, comentarios, docstrings)
 - [ ] Refactorizar módulos con alta complejidad ciclomática
 
 ## Fase 3: Modernización (Semanas 7-12)
 
+- [ ] Contenerizar la aplicación con Docker
+- [ ] Implementar pipeline CI/CD completo
 - [ ] Migrar a infraestructura cloud / actualizar stack
 - [ ] Implementar health checks y readiness probes
 
@@ -55,4 +54,4 @@
 
 ---
 
-*Generado por Agencia de Transición — 2026-05-18 19:09:07*
+*Generado por Agencia de Transición — 2026-05-21 08:05:22*

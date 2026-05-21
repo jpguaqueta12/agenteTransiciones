@@ -39,6 +39,16 @@ Opera íntegramente desde archivos `.md`. El código Python en `core/` es la cap
 │   ├── dependency-mapping/SKILL.md    ← mapa de dependencias + SPOFs
 │   ├── api-integration/SKILL.md       ← catálogo de APIs e integraciones
 │   │
+│   ├── ── TÉCNICA AVANZADA ────────────────────────────────────────────────
+│   ├── database-analysis/SKILL.md      ← análisis de BD, DDL, migraciones y queries
+│   ├── performance-static/SKILL.md     ← smells estáticos de performance
+│   ├── observability-readiness/SKILL.md ← APM, logs, tracing, health checks
+│   ├── sox-audit/SKILL.md              ← controles SOX, auditoría y SoD
+│   ├── appsec-deep/SKILL.md            ← SAST básico y auth por endpoint
+│   ├── modularity-analysis/SKILL.md    ← acoplamiento, god modules y bounded contexts
+│   ├── devops-readiness/SKILL.md       ← CI/CD, Docker, K8s, gates y branching
+│   └── testing-readiness/SKILL.md      ← pruebas, cobertura evidenciada y CI test gates
+│   │
 │   ├── ── NEGOCIO ──────────────────────────────────────────────────────────
 │   ├── business-capability/SKILL.md   ← capacidades de negocio
 │   ├── functional-flow/SKILL.md       ← flujos funcionales + excepciones
@@ -124,6 +134,22 @@ Opera íntegramente desde archivos `.md`. El código Python en `core/` es la cap
 │           ├── 15_command-control/
 │           │   ├── raid_register.md
 │           │   └── executive_dashboard.md
+│           ├── 16_database-analysis/
+│           │   └── database_analysis_report.md
+│           ├── 17_performance-static/
+│           │   └── performance_static_report.md
+│           ├── 18_observability-readiness/
+│           │   └── observability_readiness_report.md
+│           ├── 19_sox-audit/
+│           │   └── sox_audit_report.md
+│           ├── 20_appsec-deep/
+│           │   └── appsec_deep_report.md
+│           ├── 21_modularity-analysis/
+│           │   └── modularity_analysis_report.md
+│           ├── 22_devops-readiness/
+│           │   └── devops_readiness_report.md
+│           ├── 23_testing-readiness/
+│           │   └── testing_readiness_report.md
 │           └── 00_summary/
 │               └── FULL_REPORT.md
 │
@@ -235,6 +261,21 @@ El Director ejecuta estos pasos con scripts Python. No requieren análisis LLM.
 | 12 | KT Capture | `agentes/kt-capture/SKILL.md` + notas KT del usuario | `13_kt-capture/` |
 | 13 | Exit Criteria | `agentes/exit-criteria/SKILL.md` + todos los outputs | `14_exit-criteria/` |
 | 14 | Command & Control | `agentes/command-control/SKILL.md` + todos los outputs | `15_command-control/` |
+
+### Bloque 2.5 — TÉCNICO AVANZADO (generativo, ejecutado por el Director)
+
+Estos agentes NO tienen script Python obligatorio. El Director los ejecuta leyendo cada `SKILL.md`, el contenido de `<RUN_DIR>` y el código en `<CLONE_DIR>`. Su objetivo es ampliar profundidad técnica sin alterar el CORE.
+
+| # | Agente | Output |
+|---|---|---|
+| 16 | Database Analysis | `16_database-analysis/database_analysis_report.md` |
+| 17 | Performance Static | `17_performance-static/performance_static_report.md` |
+| 18 | Observability Readiness | `18_observability-readiness/observability_readiness_report.md` |
+| 19 | SOX Audit | `19_sox-audit/sox_audit_report.md` |
+| 20 | AppSec Deep | `20_appsec-deep/appsec_deep_report.md` |
+| 21 | Modularity Analysis | `21_modularity-analysis/modularity_analysis_report.md` |
+| 22 | DevOps Readiness | `22_devops-readiness/devops_readiness_report.md` |
+| 23 | Testing Readiness | `23_testing-readiness/testing_readiness_report.md` |
 
 ### Bloque 3 — INFORME FINAL (SIEMPRE obligatorio, automático al terminar)
 

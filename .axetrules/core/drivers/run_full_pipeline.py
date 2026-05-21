@@ -87,7 +87,10 @@ def _fetch_all_projects(creds: dict) -> list:
         group    = creds.get("GROUP", "") or (parts[0] if parts else "")
         platform = creds.get("PLATFORM", "github")
 
-        if not group:
+        if platform == "gitlab" and group.lower() in ("git", "gitlab", "scm"):
+            group = ""
+
+        if not group and platform != "gitlab":
             return []
 
         ctx = RepoContext(
@@ -124,6 +127,14 @@ def _fetch_all_projects(creds: dict) -> list:
                     except Exception:
                         pass
                 return sorted(projects, key=lambda p: p.last_activity or "", reverse=True)
+            elif platform == "gitlab" and not group:
+                projects = []
+                for r in client._paginate(
+                    f"{creds.get('BASE_URL', '')}/api/v4/projects",
+                    {"membership": True, "order_by": "last_activity_at", "sort": "desc"},
+                ):
+                    projects.append(client._normalize_project(r))
+                return projects
             else:
                 return client.list_projects_in_group(group)
     except Exception:
